@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:privatemessaging/screens/dashboard/chat_page_detail.dart';
 
 class ChatPage extends StatefulWidget {
-  const ChatPage({super.key});
+  const ChatPage({Key? key}) : super(key: key);
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -13,6 +13,7 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   TextEditingController myController = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -27,10 +28,12 @@ class _ChatPageState extends State<ChatPage> {
       backgroundColor: Colors.black,
       body: Container(
         decoration: BoxDecoration(
-            image: DecorationImage(
-                image: AssetImage("assets/save.png"),
-                filterQuality: FilterQuality.high,
-                fit: BoxFit.cover)),
+          image: DecorationImage(
+            image: AssetImage("assets/save.png"),
+            filterQuality: FilterQuality.high,
+            fit: BoxFit.cover,
+          ),
+        ),
         height: MediaQuery.of(context).size.height,
         width: MediaQuery.of(context).size.width,
         child: StreamBuilder(
@@ -65,24 +68,54 @@ class _ChatPageState extends State<ChatPage> {
                 return Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Card(
-                    child: Column(children: [
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: CircleAvatar(
-                          radius: 50,
-                          backgroundImage: NetworkImage(data != null
-                              ? data['photoURL'].toString() ?? ""
-                              : ""),
-                        ),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        radius: 30,
+                        backgroundImage: NetworkImage(data != null
+                            ? data['photoURL'].toString() ?? ""
+                            : ""),
                       ),
-                      Text(
+                      subtitle: StreamBuilder(
+                        stream: FirebaseFirestore.instance
+                            .collection("messages")
+                            .doc(groupChatId(data!['uid']))
+                            .collection(groupChatId(data['uid']))
+                            .orderBy("timestamp", descending: true)
+                            .limit(1)
+                            .snapshots(),
+                        builder: (BuildContext context,
+                            AsyncSnapshot<QuerySnapshot> snapshot) {
+                          if (snapshot.hasData &&
+                              snapshot.data != null &&
+                              snapshot.data!.docs.isNotEmpty) {
+                            final latestMessage = snapshot.data!.docs.first
+                                .data() as Map<String, dynamic>;
+                            return Text(
+                              latestMessage['content'],
+                              style: GoogleFonts.abhayaLibre(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            );
+                          } else {
+                            return Text(
+                              "No messages yet",
+                              style: GoogleFonts.abhayaLibre(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                      title: Text(
                         data != null ? data['name'] ?? "" : "",
                         style: GoogleFonts.abhayaLibre(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      StreamBuilder(
+                      trailing: StreamBuilder(
                         stream: FirebaseFirestore.instance
                             .collection("users")
                             .snapshots(),
@@ -122,7 +155,7 @@ class _ChatPageState extends State<ChatPage> {
                           );
                         },
                       ),
-                    ]),
+                    ),
                   ),
                 );
               },
@@ -131,5 +164,13 @@ class _ChatPageState extends State<ChatPage> {
         ),
       ),
     );
+  }
+
+  String groupChatId(String userId) {
+    if (FirebaseAuth.instance.currentUser!.uid.hashCode <= userId.hashCode) {
+      return "${FirebaseAuth.instance.currentUser!.uid}-$userId";
+    } else {
+      return "$userId-${FirebaseAuth.instance.currentUser!.uid}";
+    }
   }
 }
