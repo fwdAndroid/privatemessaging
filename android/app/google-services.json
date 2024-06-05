@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1024523211533",
+    "project_id": "privatemessage-11a03",
+    "storage_bucket": "privatemessage-11a03.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1024523211533:android:64578d44e444d664795644",
+        "android_client_info": {
+          "package_name": "com.example.privatemessaging"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBT10EhpMYboQRvhfqaS1XJrrZQGOYD4xE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
