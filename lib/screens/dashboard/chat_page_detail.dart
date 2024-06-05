@@ -67,6 +67,7 @@ class _ChatPageDetailState extends State<ChatPageDetail> {
       if (duration > 0) {
         setState(() {
           isMasked = true;
+          maskAllMessages();
         });
         Timer(Duration(seconds: duration), () {
           setState(() {
@@ -229,11 +230,12 @@ class _ChatPageDetailState extends State<ChatPageDetail> {
                               var ds = snapshot.data!.docs[index];
                               bool isSender = ds.get("senderId") ==
                                   FirebaseAuth.instance.currentUser!.uid;
+                              String messageId = ds.id;
                               bool shouldMask = isMasked;
-                              // TextStyle messageStyle = shouldMask
-                              //     ? TextStyle(
-                              //         fontFamily: 'Futurama', fontSize: 15)
-                              //     : TextStyle(fontSize: 15);
+                              TextStyle messageStyle = shouldMask
+                                  ? TextStyle(
+                                      fontFamily: 'Futurama', fontSize: 15)
+                                  : TextStyle(fontSize: 15);
 
                               return ds.get("type") == 0
                                   ? Container(
@@ -259,15 +261,10 @@ class _ChatPageDetailState extends State<ChatPageDetail> {
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
                                             children: [
-                                              shouldMask
-                                                  ? Text(
-                                                      ds.get("content"),
-                                                      style: TextStyle(
-                                                          fontFamily:
-                                                              'Futurama',
-                                                          fontSize: 15),
-                                                    )
-                                                  : Text(ds.get("content")),
+                                              Text(
+                                                ds.get("content"),
+                                                style: messageStyle,
+                                              ),
                                               Text(
                                                 DateFormat.jm().format(
                                                   DateTime
@@ -454,7 +451,7 @@ class _ChatPageDetailState extends State<ChatPageDetail> {
           },
         );
       }).then((_) {
-        maskAllMessages();
+        // maskAllMessages();
       });
 
       scrollController.animateTo(
