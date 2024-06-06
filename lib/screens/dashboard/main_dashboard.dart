@@ -42,12 +42,12 @@ class _MainDashBoardState extends State<MainDashBoard> {
                         borderRadius: BorderRadius.all(Radius.circular(60))),
                     child: Icon(
                       Icons.chat_bubble,
-                      color: Colors.white,
+                      color: Colors.grey,
                     ),
                   )
                 : Icon(
                     Icons.chat_bubble,
-                    color: Colors.white,
+                    color: Colors.grey,
                   ),
             label: 'Chat',
           ),
@@ -62,12 +62,12 @@ class _MainDashBoardState extends State<MainDashBoard> {
                         borderRadius: BorderRadius.all(Radius.circular(60))),
                     child: Icon(
                       Icons.person,
-                      color: Colors.white,
+                      color: Colors.grey,
                     ),
                   )
                 : Icon(
                     Icons.person,
-                    color: Colors.white,
+                    color: Colors.grey,
                   ),
             label: 'Contacts',
           ),
@@ -83,16 +83,16 @@ class _MainDashBoardState extends State<MainDashBoard> {
                           borderRadius: BorderRadius.all(Radius.circular(60))),
                       child: Icon(
                         Icons.person_pin,
-                        color: Colors.white,
+                        color: Colors.grey,
                       ),
                     )
                   : Icon(
                       Icons.person_pin,
-                      color: Colors.white,
+                      color: Colors.grey,
                     )),
         ],
         selectedItemColor: Color(0xff337af6),
-        unselectedItemColor: Colors.white,
+        unselectedItemColor: Colors.grey,
         backgroundColor:
             Color(0xff50556b), // Set your desired background color here
       ),
