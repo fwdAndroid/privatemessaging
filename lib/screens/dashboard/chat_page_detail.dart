@@ -43,18 +43,18 @@ class _ChatPageDetailState extends State<ChatPageDetail> {
   File? file;
 
   bool isMasked = false;
-  int selectedDuration = 10; // Initial duration selection
+  int selectedDuration = 0; // Initial duration selection
+  bool hideExpandedWidget = false;
+  Timer? hideTimer; // Timer variable to keep track of hiding duration
+
   TextEditingController messageController = TextEditingController();
   String? imageLink, fileLink;
   firebase_storage.UploadTask? uploadTask;
-  Timer? cleanupTimer;
-  Set<String> maskedMessageIds = Set<String>();
-  late StreamController<int> selectedDurationStreamController;
 
   @override
   void initState() {
     super.initState();
-    selectedDurationStreamController = StreamController<int>.broadcast();
+
     if (FirebaseAuth.instance.currentUser!.uid.hashCode <=
         widget.friendId.hashCode) {
       groupChatId =
@@ -63,39 +63,12 @@ class _ChatPageDetailState extends State<ChatPageDetail> {
       groupChatId =
           "${widget.friendId}-${FirebaseAuth.instance.currentUser!.uid}";
     }
-    selectedDurationStreamController.stream.listen((duration) {
-      if (duration > 0) {
-        setState(() {
-          isMasked = true;
-          maskAllMessages();
-        });
-        Timer(Duration(seconds: duration), () {
-          setState(() {
-            isMasked = false;
-          });
-        });
-      }
-    });
   }
 
   @override
   void dispose() {
-    cleanupTimer?.cancel();
-    selectedDurationStreamController.close();
     super.dispose();
-  }
-
-  void maskAllMessages() {
-    setState(() {
-      isMasked = true;
-    });
-    if (selectedDuration > 0) {
-      Timer(Duration(seconds: selectedDuration), () {
-        setState(() {
-          isMasked = false;
-        });
-      });
-    }
+    hideTimer?.cancel(); // Cancel the timer when widget is disposed
   }
 
   @override
@@ -185,7 +158,19 @@ class _ChatPageDetailState extends State<ChatPageDetail> {
                   onChanged: (value) {
                     setState(() {
                       selectedDuration = value!;
-                      selectedDurationStreamController.add(value);
+                      if (selectedDuration > 0) {
+                        hideExpandedWidget = true;
+                        // Start a timer to unhide the widget after selected duration
+                        hideTimer =
+                            Timer(Duration(seconds: selectedDuration), () {
+                          setState(() {
+                            hideExpandedWidget = false;
+                          });
+                        });
+                      } else {
+                        hideExpandedWidget = false;
+                        hideTimer?.cancel(); // Cancel any ongoing timer
+                      }
                     });
                   },
                 ),
@@ -219,149 +204,151 @@ class _ChatPageDetailState extends State<ChatPageDetail> {
                 if (snapshot.hasData) {
                   return snapshot.data!.docs.isEmpty
                       ? Center(child: Text("Empty"))
-                      : Expanded(
-                          child: ListView.builder(
-                            reverse: false,
-                            controller: scrollController,
-                            itemCount: snapshot.data!.docs.length,
-                            shrinkWrap: true,
-                            padding: EdgeInsets.only(top: 10, bottom: 10),
-                            itemBuilder: (context, index) {
-                              var ds = snapshot.data!.docs[index];
-                              bool isSender = ds.get("senderId") ==
-                                  FirebaseAuth.instance.currentUser!.uid;
-                              String messageId = ds.id;
-                              bool shouldMask = isMasked;
-                              TextStyle messageStyle = shouldMask
-                                  ? TextStyle(
-                                      fontFamily: 'Futurama', fontSize: 15)
-                                  : TextStyle(fontSize: 15);
+                      : Visibility(
+                          visible:
+                              !hideExpandedWidget, // Use the boolean to control visibility
 
-                              return ds.get("type") == 0
-                                  ? Container(
-                                      padding: EdgeInsets.only(
-                                          left: 10,
-                                          right: 10,
-                                          top: 10,
-                                          bottom: 10),
-                                      child: Align(
-                                        alignment: isSender
-                                            ? Alignment.bottomRight
-                                            : Alignment.bottomLeft,
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(10),
-                                            color: isSender
-                                                ? Colors.grey.shade100
-                                                : Colors.blue[100],
-                                          ),
-                                          padding: EdgeInsets.all(16),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                ds.get("content"),
-                                                style: messageStyle,
-                                              ),
-                                              Text(
-                                                DateFormat.jm().format(
-                                                  DateTime
-                                                      .fromMillisecondsSinceEpoch(
-                                                    int.parse(ds.get("time")),
+                          child: Expanded(
+                            child: ListView.builder(
+                              reverse: false,
+                              controller: scrollController,
+                              itemCount: snapshot.data!.docs.length,
+                              shrinkWrap: true,
+                              padding: EdgeInsets.only(top: 10, bottom: 10),
+                              itemBuilder: (context, index) {
+                                var ds = snapshot.data!.docs[index];
+                                bool isSender = ds.get("senderId") ==
+                                    FirebaseAuth.instance.currentUser!.uid;
+                                String messageId = ds.id;
+
+                                return ds.get("type") == 0
+                                    ? Container(
+                                        padding: EdgeInsets.only(
+                                            left: 10,
+                                            right: 10,
+                                            top: 10,
+                                            bottom: 10),
+                                        child: Align(
+                                          alignment: isSender
+                                              ? Alignment.bottomRight
+                                              : Alignment.bottomLeft,
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              color: isSender
+                                                  ? Colors.grey.shade100
+                                                  : Colors.blue[100],
+                                            ),
+                                            padding: EdgeInsets.all(16),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  ds.get("content"),
+                                                ),
+                                                Text(
+                                                  DateFormat.jm().format(
+                                                    DateTime
+                                                        .fromMillisecondsSinceEpoch(
+                                                      int.parse(ds.get("time")),
+                                                    ),
+                                                  ),
+                                                  style: TextStyle(
+                                                    color: Colors.grey,
+                                                    fontSize: 12,
+                                                    fontStyle: FontStyle.italic,
                                                   ),
                                                 ),
-                                                style: TextStyle(
-                                                  color: Colors.grey,
-                                                  fontSize: 12,
-                                                  fontStyle: FontStyle.italic,
-                                                ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    )
-                                  : ds.get("type") == 1
-                                      ? Stack(
-                                          children: [
-                                            Column(
-                                              children: [
-                                                Container(
-                                                  padding: EdgeInsets.only(
-                                                      left: 10,
-                                                      right: 10,
-                                                      top: 10,
-                                                      bottom: 10),
-                                                  child: Align(
-                                                    alignment: isSender
-                                                        ? Alignment.bottomRight
-                                                        : Alignment.bottomLeft,
-                                                    child: Container(
-                                                      height:
-                                                          MediaQuery.of(context)
-                                                                  .size
-                                                                  .height *
-                                                              0.3,
-                                                      width:
-                                                          MediaQuery.of(context)
-                                                                  .size
-                                                                  .width *
-                                                              0.4,
-                                                      decoration: BoxDecoration(
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(10),
-                                                      ),
-                                                      child: Column(
-                                                        children: [
-                                                          CachedNetworkImage(
-                                                            fit: BoxFit.cover,
-                                                            height: 140,
-                                                            imageUrl:
-                                                                ds.get("image"),
-                                                            placeholder: (context,
-                                                                    url) =>
-                                                                new CircularProgressIndicator(),
-                                                            errorWidget: (context,
-                                                                    url,
-                                                                    error) =>
-                                                                new Icon(Icons
-                                                                    .error),
-                                                          ),
-                                                          Text(
-                                                            DateFormat.jm()
-                                                                .format(
-                                                              DateTime
-                                                                  .fromMillisecondsSinceEpoch(
-                                                                int.parse(ds.get(
-                                                                    "time")),
+                                      )
+                                    : ds.get("type") == 1
+                                        ? Stack(
+                                            children: [
+                                              Column(
+                                                children: [
+                                                  Container(
+                                                    padding: EdgeInsets.only(
+                                                        left: 10,
+                                                        right: 10,
+                                                        top: 10,
+                                                        bottom: 10),
+                                                    child: Align(
+                                                      alignment: isSender
+                                                          ? Alignment
+                                                              .bottomRight
+                                                          : Alignment
+                                                              .bottomLeft,
+                                                      child: Container(
+                                                        height: MediaQuery.of(
+                                                                    context)
+                                                                .size
+                                                                .height *
+                                                            0.3,
+                                                        width: MediaQuery.of(
+                                                                    context)
+                                                                .size
+                                                                .width *
+                                                            0.4,
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(10),
+                                                        ),
+                                                        child: Column(
+                                                          children: [
+                                                            CachedNetworkImage(
+                                                              fit: BoxFit.cover,
+                                                              height: 140,
+                                                              imageUrl: ds
+                                                                  .get("image"),
+                                                              placeholder: (context,
+                                                                      url) =>
+                                                                  new CircularProgressIndicator(),
+                                                              errorWidget: (context,
+                                                                      url,
+                                                                      error) =>
+                                                                  new Icon(Icons
+                                                                      .error),
+                                                            ),
+                                                            Text(
+                                                              DateFormat.jm()
+                                                                  .format(
+                                                                DateTime
+                                                                    .fromMillisecondsSinceEpoch(
+                                                                  int.parse(ds.get(
+                                                                      "time")),
+                                                                ),
+                                                              ),
+                                                              style: TextStyle(
+                                                                color:
+                                                                    Colors.grey,
+                                                                fontSize: 12,
+                                                                fontStyle:
+                                                                    FontStyle
+                                                                        .italic,
                                                               ),
                                                             ),
-                                                            style: TextStyle(
-                                                              color:
-                                                                  Colors.grey,
-                                                              fontSize: 12,
-                                                              fontStyle:
-                                                                  FontStyle
-                                                                      .italic,
-                                                            ),
-                                                          ),
-                                                        ],
+                                                          ],
+                                                        ),
                                                       ),
                                                     ),
                                                   ),
-                                                ),
-                                                task != null
-                                                    ? buildUploadStatus(task!)
-                                                    : Container(),
-                                              ],
-                                            ),
-                                          ],
-                                        )
-                                      : Container();
-                            },
+                                                  task != null
+                                                      ? buildUploadStatus(task!)
+                                                      : Container(),
+                                                ],
+                                              ),
+                                            ],
+                                          )
+                                        : Container();
+                              },
+                            ),
                           ),
                         );
                 } else if (snapshot.hasError) {
@@ -451,7 +438,7 @@ class _ChatPageDetailState extends State<ChatPageDetail> {
           },
         );
       }).then((_) {
-        // maskAllMessages();
+        // Refresh messages after sending
       });
 
       scrollController.animateTo(
