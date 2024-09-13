@@ -51,10 +51,15 @@ class _ChatPageDetailState extends State<ChatPageDetail> {
   String? imageLink, fileLink;
   firebase_storage.UploadTask? uploadTask;
 
+  //Inactive
+  bool isScreenActive = true; // Track screen activity
+  // Timer to toggle font back to normal after screen inactivity
+  late Timer toggleFontTimer;
+
   @override
   void initState() {
     super.initState();
-
+    scrollController = ScrollController();
     if (FirebaseAuth.instance.currentUser!.uid.hashCode <=
         widget.friendId.hashCode) {
       groupChatId =
@@ -63,12 +68,28 @@ class _ChatPageDetailState extends State<ChatPageDetail> {
       groupChatId =
           "${widget.friendId}-${FirebaseAuth.instance.currentUser!.uid}";
     }
+    toggleFontTimer = Timer.periodic(Duration(seconds: 5), (timer) {
+      setState(() {
+        isScreenActive = false;
+      });
+    });
   }
 
   @override
   void dispose() {
     super.dispose();
     hideTimer?.cancel(); // Cancel the timer when widget is disposed
+    toggleFontTimer.cancel(); // Cancel the timer when widget is disposed
+    scrollController.dispose();
+  }
+
+  void scrollToBottom() {
+    // Scroll to the bottom of the ListView
+    scrollController.animateTo(
+      scrollController.position.maxScrollExtent,
+      duration: Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
   }
 
   @override
@@ -439,6 +460,7 @@ class _ChatPageDetailState extends State<ChatPageDetail> {
         );
       }).then((_) {
         // Refresh messages after sending
+        scrollToBottom();
       });
 
       scrollController.animateTo(
